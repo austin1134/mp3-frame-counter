@@ -367,6 +367,45 @@ describe('strict completion and lifecycle', () => {
 });
 
 describe('bounded free-format synchronization', () => {
+  const modeChanges = concatBytes(
+    id3Tag(3),
+    // Establish spacing with stereo, joint stereo and dual-channel headers.
+    freeFrame(),
+    freeFrame(418, true, 0x40, 0xfa),
+    freeFrame(417, false, 0x80),
+    // After confirmation, mono/stereo transitions preserve the padded stride.
+    freeFrame(418, true, 0xc0, 0xfa),
+    freeFrame(),
+    freeFrame(417, false, 0xc0),
+    freeFrame(418, true, 0x40, 0xfa),
+    id3v1(),
+  );
+
+  it.each([1, 3, 4, 7, 417, 418, 1024, 4096])(
+    'accepts confirmed mode changes with padding and CRC in %i-byte chunks',
+    (chunkSize) => {
+      expect(count(modeChanges, chunkSize)).toBe(7);
+    },
+  );
+
+  it('preserves confirmed mode changes across deterministic random partitions', () => {
+    for (const initialSeed of [1, 17, 98765]) {
+      const parser = new Mp3FrameCounter();
+      let seed = initialSeed;
+      let offset = 0;
+      let maximum = 0;
+      while (offset < modeChanges.length) {
+        seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+        const size = (seed % 997) + 1;
+        parser.push(modeChanges.subarray(offset, offset + size));
+        maximum = Math.max(maximum, parser.bufferedByteCount);
+        offset += size;
+      }
+      expect(parser.finish()).toBe(7);
+      expect(maximum).toBeLessThanOrEqual(2886);
+    }
+  });
+
   it.each([1, 7, 417, 1024, 4096])(
     'infers unpadded size with alternating padding in %i-byte chunks',
     (chunkSize) => {
@@ -389,6 +428,40 @@ describe('bounded free-format synchronization', () => {
     first.set([0xff, 0xfb, 0x90, 0x00], 240); // Indexed bitrate.
     expect(count(concatBytes(first, freeFrame(), freeFrame()), 37)).toBe(3);
   });
+
+  it.each([
+    ['first sync byte', [0xfe, 0xfb, 0x00, 0x00]],
+    ['remaining sync bits', [0xff, 0xdb, 0x00, 0x00]],
+    ['reserved version', [0xff, 0xeb, 0x00, 0x00]],
+    ['reserved layer', [0xff, 0xf9, 0x00, 0x00]],
+    ['reserved bitrate', [0xff, 0xfb, 0xf0, 0x00]],
+    ['reserved sample rate', [0xff, 0xfb, 0x0c, 0x00]],
+    ['reserved emphasis', [0xff, 0xfb, 0x00, 0x02]],
+  ] as const)('ignores a false candidate with invalid %s', (_field, header) => {
+    const first = freeFrame();
+    first.set(header, 60);
+    // This predicted third header must not confirm a malformed second header.
+    first.set([0xff, 0xfb, 0x00, 0x00], 120);
+    const bytes = concatBytes(first, freeFrame(), freeFrame());
+    for (const chunkSize of [1, 37, 4096]) {
+      expect(count(bytes, chunkSize)).toBe(3);
+    }
+  });
+
+  it.each([1, 2])(
+    'requires matching channel counts at discovery header index %i',
+    (index) => {
+      const frames = [freeFrame(), freeFrame(), freeFrame()];
+      frames[index] = freeFrame(417, false, 0xc0);
+      const bytes = concatBytes(...frames);
+      for (const chunkSize of [1, 417, 4096]) {
+        expect(failure(() => count(bytes, chunkSize))).toMatchObject({
+          code: 'FREE_FORMAT_UNDETERMINED',
+          offset: 0,
+        });
+      }
+    },
+  );
 
   it('confirms the largest structural frames at the 2,886-byte discovery limit', () => {
     const parser = new Mp3FrameCounter();
@@ -442,19 +515,28 @@ describe('bounded free-format synchronization', () => {
     ).toMatchObject({ code: 'INVALID_MP3', offset: 1251 });
   });
 
-  it('rejects changed free-format parameters and insufficient mandatory side information', () => {
-    expect(
-      failure(() =>
-        count(
-          concatBytes(
-            freeFrame(),
-            freeFrame(),
-            freeFrame(),
-            freeFrame(417, false, 0, 0xfb, 4),
+  it.each([
+    ['sample rate', [0xff, 0xfb, 0x04, 0x00]],
+    ['indexed bitrate', [0xff, 0xfb, 0x90, 0x00]],
+  ] as const)(
+    'rejects changed %s after free-format synchronization',
+    (_field, header) => {
+      expect(
+        failure(() =>
+          count(
+            concatBytes(
+              freeFrame(),
+              freeFrame(),
+              freeFrame(),
+              createFrame(header, 417),
+            ),
           ),
         ),
-      ),
-    ).toMatchObject({ code: 'INVALID_MP3', offset: 1251 });
+      ).toMatchObject({ code: 'INVALID_MP3', offset: 1251 });
+    },
+  );
+
+  it('rejects a CRC change with insufficient mandatory side information', () => {
     const shortMono = freeFrame(21, false, 0xc0);
     expect(
       failure(() =>
@@ -469,4 +551,28 @@ describe('bounded free-format synchronization', () => {
       ),
     ).toMatchObject({ code: 'INVALID_MP3', offset: 63 });
   });
+
+  it.each([
+    [21, false, 0xfb],
+    [36, true, 0xfa],
+  ] as const)(
+    'rejects a mono-to-stereo change when the %i-byte base lacks side information',
+    (base, padding, protection) => {
+      const parser = new Mp3FrameCounter();
+      const mono = freeFrame(base, false, 0xc0);
+      parser.push(concatBytes(mono, mono, mono));
+      const error = failure(() =>
+        parser.push(
+          freeFrame(base + (padding ? 1 : 0), padding, 0, protection),
+        ),
+      );
+      expect(error).toMatchObject({
+        code: 'INVALID_MP3',
+        message: 'Invalid MPEG frame length.',
+        offset: 3 * base,
+      });
+      expect(failure(() => parser.finish())).toBe(error);
+      expect(failure(() => parser.push(freeFrame()))).toBe(error);
+    },
+  );
 });

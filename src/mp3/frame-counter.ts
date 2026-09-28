@@ -222,7 +222,13 @@ export class Mp3FrameCounter {
       this.scratch.subarray(0, 4),
       this.headerOffset,
     );
-    if (this.freeBaseLength !== undefined && !this.matchesFreeHeader(header)) {
+    // Once spacing is established, channel mode can change without changing
+    // the stride. Each header still supplies its own side-information minimum.
+    if (
+      this.freeBaseLength !== undefined &&
+      (header.bitrateIndex !== 0 ||
+        header.sampleRateHz !== this.freeHeader?.sampleRateHz)
+    ) {
       throw new Mp3Error(
         'INVALID_MP3',
         'Free-format stream parameters changed.',
@@ -345,7 +351,7 @@ export class Mp3FrameCounter {
     this.phase = 'header';
   }
 
-  private matchesFreeHeader(header: Mp3FrameHeader): boolean {
+  private matchesDiscoveryFreeHeader(header: Mp3FrameHeader): boolean {
     const first = this.freeHeader;
     return (
       first !== undefined &&
@@ -359,12 +365,22 @@ export class Mp3FrameCounter {
     window: Uint8Array,
     position: number,
   ): Mp3FrameHeader | undefined {
+    // Most payload offsets cannot be headers. Avoid allocating exceptions for
+    // those bytes; the header reader remains responsible for full validation.
+    const second = window[position + 1];
+    if (
+      window[position] !== 0xff ||
+      second === undefined ||
+      (second & 0xe0) !== 0xe0
+    ) {
+      return undefined;
+    }
     try {
       const header = readFrameHeader(
         window.subarray(position, position + 4),
         this.freeStartOffset + position,
       );
-      return this.matchesFreeHeader(header) ? header : undefined;
+      return this.matchesDiscoveryFreeHeader(header) ? header : undefined;
     } catch (error) {
       if (error instanceof Mp3Error) return undefined;
       throw error;
