@@ -1,0 +1,654 @@
+{
+  "verifiedAt": "2026-09-28T19:45:16.980Z",
+  "scope": "Supplemental local verification; committed regression tests require no external tools or services.",
+  "tools": {
+    "node": "v22.14.0",
+    "ffprobe": "9.0.2",
+    "mediaInfo": "MediaInfoLib 26.05",
+    "mediaInfoArguments": ["--Full", "--ParseSpeed=1", "--Output=JSON"],
+    "mediaInfoDownload": "https://mediaarea.net/download/binary/mediainfo/26.05/MediaInfo_CLI_26.05_Windows_x64.zip",
+    "mediaInfoArchiveSha256": "f7f80620ce6d14f4995f0de6f98e3ef18ad29496db01899571152ee3311229f9"
+  },
+  "summary": {
+    "generatedFiles": 21,
+    "generatedChunkChecks": 105,
+    "publicProjectFiles": 2,
+    "suppliedSample": 1,
+    "derivedSampleCopies": 3,
+    "realHttpUploads": 27,
+    "uploadFailures": 0
+  },
+  "originalSampleSha256BeforeAndAfter": "97707a18a58ba75122b1668f5ed738f090121343432d9172a6409ddfa4fc5ab3",
+  "method": "Expected counts for generated files use actual contiguous FFprobe packet byte ranges, adding one only for a complete observed leading Info/Xing carrier. Embedded counters and duration estimates are not the oracle. Sample mutations have known unchanged boundaries, except the explicit removal of one 208-byte carrier.",
+  "caveats": [
+    "MediaInfoLib 26.05 can use stored Xing metadata even at ParseSpeed=1. Setting the sample declaration to 1 changes its reported FrameCount to 1 without changing physical frame boundaries.",
+    "The original sample has a 44-byte ID3v2 tag and a 208-byte Xing carrier at [44,252). The Xing marker is at byte 80. FFprobe returns the following 6,089 audio packets; the API includes the carrier.",
+    "In these MediaInfo 26.05 results, CBR Info counts include the carrier; VBR/ABR Xing counts exclude it. This is version-dependent behavior, so there is no universal correction of one frame.",
+    "FFprobe packet counts and decoded counts differ for the deliberately false declaration: skip_samples=1105 plus discard_padding=47 suppress all 1,152 samples of its first returned packet. The experiment still has 6,089 packets but 6,088 decoded frames.",
+    "Masking Xing preserves the leading physical carrier. FFprobe 9.0.2 then omits its 208 bytes during initial synchronization because the carrier and next frame have different channel modes. MediaInfo full parsing and the API report 6,090.",
+    "The valid generated corpus contains 18 LAME files and three MediaFoundation stereo files. MediaFoundation mono generation attempts that emitted no audio packets are recorded separately and excluded."
+  ],
+  "sources": [
+    "https://mediaarea.net/en/MediaInfo/Download/Windows",
+    "https://github.com/MediaArea/MediaInfoLib/blob/v26.05/Source/MediaInfo/Audio/File_Mpega.cpp",
+    "https://github.com/MediaArea/MediaInfoLib/pull/2673",
+    "https://github.com/FFmpeg/FFmpeg/blob/n9.0.2/libavformat/mp3dec.c",
+    "https://github.com/FFmpeg/FFmpeg/blob/n9.0.2/fftools/ffprobe.c",
+    "https://github.com/FFmpeg/FFmpeg/blob/n9.0.2/libavcodec/mpegaudiodecheader.h",
+    "https://github.com/FFmpeg/FFmpeg/blob/n9.0.2/libavcodec/decode.c"
+  ],
+  "cases": [
+    {
+      "name": "assessment-original",
+      "source": "provided assessment sample",
+      "bytes": 1458172,
+      "sha256": "97707a18a58ba75122b1668f5ed738f090121343432d9172a6409ddfa4fc5ab3",
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "bitrateMode": "VBR",
+      "physicalFrameCount": 6090,
+      "ffprobeAudioPackets": 6089,
+      "mediaInfoFrameCount": 6089,
+      "carrier": "Xing",
+      "carrierBytes": 208,
+      "packetByteRangesCoverAudio": true,
+      "http": {
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "response": {
+          "frameCount": 6090
+        }
+      }
+    },
+    {
+      "name": "assessment-counter-set-to-one",
+      "source": "provided sample; only cached Xing counter changed to1",
+      "bytes": 1458172,
+      "sha256": "c26f23f346d7553f3ccab4444768b5b6520f16a24584449d69ec9ebf061a8d64",
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "bitrateMode": "VBR",
+      "physicalFrameCount": 6090,
+      "ffprobeAudioPackets": 6089,
+      "mediaInfoFrameCount": 1,
+      "http": {
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "response": {
+          "frameCount": 6090
+        }
+      }
+    },
+    {
+      "name": "assessment-without-xing-frame",
+      "source": "provided sample; first208byte carrier frame removed",
+      "bytes": 1457964,
+      "sha256": "98eb82fed5e51a51851a1905d182131d98386de6e59287b0b6eb77bd1074a71e",
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "bitrateMode": "VBR",
+      "physicalFrameCount": 6089,
+      "ffprobeAudioPackets": 6089,
+      "mediaInfoFrameCount": 6089,
+      "http": {
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "response": {
+          "frameCount": 6089
+        }
+      }
+    },
+    {
+      "name": "assessment-xing-marker-masked",
+      "source": "provided sample; four Xing signature bytes masked; all frame boundaries preserved",
+      "bytes": 1458172,
+      "sha256": "6062f34388bd588aa1aba1a15c7570edc27b1fe38cc49c50430324cd16457334",
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "bitrateMode": "VBR",
+      "physicalFrameCount": 6090,
+      "ffprobeAudioPackets": 6089,
+      "mediaInfoFrameCount": 6090,
+      "http": {
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "response": {
+          "frameCount": 6090
+        }
+      }
+    },
+    {
+      "name": "abr-32000-mono-no-xing-id3v23",
+      "source": "Generated LAME",
+      "bytes": 6034,
+      "sha256": "8319f2d55bc9542ab1770f4d893453120276e37dd0d5e9942cc9701ab374b375",
+      "sampleRateHz": 32000,
+      "channels": 1,
+      "bitrateMode": "VBR",
+      "physicalFrameCount": 40,
+      "ffprobeAudioPackets": 40,
+      "mediaInfoFrameCount": 40,
+      "carrier": null,
+      "carrierBytes": 0,
+      "packetByteRangesCoverAudio": true,
+      "testedChunkLayouts": [1, 7, 4093, 65536, "deterministic random"],
+      "http": {
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "response": {
+          "frameCount": 40
+        }
+      }
+    },
+    {
+      "name": "abr-32000-stereo-no-xing-id3v24",
+      "source": "Generated LAME",
+      "bytes": 40887,
+      "sha256": "551582d9a00ada3a0ff0ee747c33827a1d57da34cf091af3516c09843fcc502c",
+      "sampleRateHz": 32000,
+      "channels": 2,
+      "bitrateMode": "VBR",
+      "physicalFrameCount": 40,
+      "ffprobeAudioPackets": 40,
+      "mediaInfoFrameCount": 40,
+      "carrier": null,
+      "carrierBytes": 0,
+      "packetByteRangesCoverAudio": true,
+      "testedChunkLayouts": [1, 7, 4093, 65536, "deterministic random"],
+      "http": {
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "response": {
+          "frameCount": 40
+        }
+      }
+    },
+    {
+      "name": "abr-44100-mono-seek-id3v23",
+      "source": "Generated LAME",
+      "bytes": 11244,
+      "sha256": "49d1cf68deb2e8bd6e4514e856c8a7e1dba1c155527d51cacf3c403c36efbaa5",
+      "sampleRateHz": 44100,
+      "channels": 1,
+      "bitrateMode": "VBR",
+      "physicalFrameCount": 55,
+      "ffprobeAudioPackets": 54,
+      "mediaInfoFrameCount": 54,
+      "carrier": "Xing",
+      "carrierBytes": 208,
+      "packetByteRangesCoverAudio": true,
+      "testedChunkLayouts": [1, 7, 4093, 65536, "deterministic random"],
+      "http": {
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "response": {
+          "frameCount": 55
+        }
+      }
+    },
+    {
+      "name": "abr-44100-stereo-seek-id3v24",
+      "source": "Generated LAME",
+      "bytes": 32440,
+      "sha256": "be8c479876191ac07b559d52080629199ac8458bc087118782162047c67bed5b",
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "bitrateMode": "VBR",
+      "physicalFrameCount": 55,
+      "ffprobeAudioPackets": 54,
+      "mediaInfoFrameCount": 54,
+      "carrier": "Xing",
+      "carrierBytes": 626,
+      "packetByteRangesCoverAudio": true,
+      "testedChunkLayouts": [1, 7, 4093, 65536, "deterministic random"],
+      "http": {
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "response": {
+          "frameCount": 55
+        }
+      }
+    },
+    {
+      "name": "abr-48000-mono-seek-id3v23",
+      "source": "Generated LAME",
+      "bytes": 16246,
+      "sha256": "74d077adc35a6c727aaafacb01e383c97413011606fcd53012aecaf65bb46da1",
+      "sampleRateHz": 48000,
+      "channels": 1,
+      "bitrateMode": "VBR",
+      "physicalFrameCount": 60,
+      "ffprobeAudioPackets": 59,
+      "mediaInfoFrameCount": 59,
+      "carrier": "Xing",
+      "carrierBytes": 288,
+      "packetByteRangesCoverAudio": true,
+      "testedChunkLayouts": [1, 7, 4093, 65536, "deterministic random"],
+      "http": {
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "response": {
+          "frameCount": 60
+        }
+      }
+    },
+    {
+      "name": "abr-48000-stereo-seek-id3v24",
+      "source": "Generated LAME",
+      "bytes": 22071,
+      "sha256": "ff98824b0c5b8d9645fa07a7625ac971b833a127b0a3033e15099297fa061e67",
+      "sampleRateHz": 48000,
+      "channels": 2,
+      "bitrateMode": "VBR",
+      "physicalFrameCount": 60,
+      "ffprobeAudioPackets": 59,
+      "mediaInfoFrameCount": 59,
+      "carrier": "Xing",
+      "carrierBytes": 384,
+      "packetByteRangesCoverAudio": true,
+      "testedChunkLayouts": [1, 7, 4093, 65536, "deterministic random"],
+      "http": {
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "response": {
+          "frameCount": 60
+        }
+      }
+    },
+    {
+      "name": "cbr-32000-mono-seek-id3v23-id3v1",
+      "source": "Generated LAME",
+      "bytes": 6234,
+      "sha256": "c9c6de01a19cdd4627c50fe122b70163905073dff92599f7c6a4210a2e1a1dd9",
+      "sampleRateHz": 32000,
+      "channels": 1,
+      "bitrateMode": "CBR",
+      "physicalFrameCount": 41,
+      "ffprobeAudioPackets": 40,
+      "mediaInfoFrameCount": 41,
+      "carrier": "Info",
+      "carrierBytes": 180,
+      "packetByteRangesCoverAudio": true,
+      "testedChunkLayouts": [1, 7, 4093, 65536, "deterministic random"],
+      "http": {
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "response": {
+          "frameCount": 41
+        }
+      }
+    },
+    {
+      "name": "cbr-32000-stereo-seek-id3v24-id3v1",
+      "source": "Generated LAME",
+      "bytes": 59303,
+      "sha256": "53c93d3e40edcb9e687a1ae978d49ce2c49030d245ecd5b166ac03af3d5e157d",
+      "sampleRateHz": 32000,
+      "channels": 2,
+      "bitrateMode": "CBR",
+      "physicalFrameCount": 41,
+      "ffprobeAudioPackets": 40,
+      "mediaInfoFrameCount": 41,
+      "carrier": "Info",
+      "carrierBytes": 1440,
+      "packetByteRangesCoverAudio": true,
+      "testedChunkLayouts": [1, 7, 4093, 65536, "deterministic random"],
+      "http": {
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "response": {
+          "frameCount": 41
+        }
+      }
+    },
+    {
+      "name": "cbr-44100-mono-seek-id3v23-id3v1",
+      "source": "Generated LAME",
+      "bytes": 11786,
+      "sha256": "ecdbf29a8cd4bf4c58a067635f7d17a5ddb1ba1cf14a418ef40709dfb7a89e0a",
+      "sampleRateHz": 44100,
+      "channels": 1,
+      "bitrateMode": "CBR",
+      "physicalFrameCount": 55,
+      "ffprobeAudioPackets": 54,
+      "mediaInfoFrameCount": 55,
+      "carrier": "Info",
+      "carrierBytes": 208,
+      "packetByteRangesCoverAudio": true,
+      "testedChunkLayouts": [1, 7, 4093, 65536, "deterministic random"],
+      "http": {
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "response": {
+          "frameCount": 55
+        }
+      }
+    },
+    {
+      "name": "cbr-44100-stereo-seek-id3v24-id3v1",
+      "source": "Generated LAME",
+      "bytes": 34743,
+      "sha256": "e12cf15d7c17f74a8941adbd5e95d71e47747085ec294d9b10a2dc9b5835a249",
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "bitrateMode": "CBR",
+      "physicalFrameCount": 55,
+      "ffprobeAudioPackets": 54,
+      "mediaInfoFrameCount": 55,
+      "carrier": "Info",
+      "carrierBytes": 626,
+      "packetByteRangesCoverAudio": true,
+      "testedChunkLayouts": [1, 7, 4093, 65536, "deterministic random"],
+      "http": {
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "response": {
+          "frameCount": 55
+        }
+      }
+    },
+    {
+      "name": "cbr-48000-mono-no-xing-id3v23-id3v1",
+      "source": "Generated LAME",
+      "bytes": 17286,
+      "sha256": "43e57b23f3755f47c5ee8ade2f5ec97668246b48868d5f564115d487d60d6326",
+      "sampleRateHz": 48000,
+      "channels": 1,
+      "bitrateMode": "CBR",
+      "physicalFrameCount": 59,
+      "ffprobeAudioPackets": 59,
+      "mediaInfoFrameCount": 59,
+      "carrier": null,
+      "carrierBytes": 0,
+      "packetByteRangesCoverAudio": true,
+      "testedChunkLayouts": [1, 7, 4093, 65536, "deterministic random"],
+      "http": {
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "response": {
+          "frameCount": 59
+        }
+      }
+    },
+    {
+      "name": "cbr-48000-stereo-no-xing-id3v24-id3v1",
+      "source": "Generated LAME",
+      "bytes": 22919,
+      "sha256": "6e6e05adfd1692ccd61d8393c2746e838e95263567c945df74446d054550221b",
+      "sampleRateHz": 48000,
+      "channels": 2,
+      "bitrateMode": "CBR",
+      "physicalFrameCount": 59,
+      "ffprobeAudioPackets": 59,
+      "mediaInfoFrameCount": 59,
+      "carrier": null,
+      "carrierBytes": 0,
+      "packetByteRangesCoverAudio": true,
+      "testedChunkLayouts": [1, 7, 4093, 65536, "deterministic random"],
+      "http": {
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "response": {
+          "frameCount": 59
+        }
+      }
+    },
+    {
+      "name": "mediafoundation-cbr-32000-stereo-no-xing-id3v24",
+      "source": "Generated Windows MediaFoundation",
+      "bytes": 23191,
+      "sha256": "6ccc082619ad7b545a8a78c7c43ffa53480239f4a95e3cef45b5eed651285e2f",
+      "sampleRateHz": 32000,
+      "channels": 2,
+      "bitrateMode": "CBR",
+      "physicalFrameCount": 40,
+      "ffprobeAudioPackets": 40,
+      "mediaInfoFrameCount": 40,
+      "carrier": null,
+      "carrierBytes": 0,
+      "packetByteRangesCoverAudio": true,
+      "testedChunkLayouts": [1, 7, 4093, 65536, "deterministic random"],
+      "http": {
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "response": {
+          "frameCount": 40
+        }
+      }
+    },
+    {
+      "name": "mediafoundation-cbr-44100-stereo-no-xing-id3v24-id3v1",
+      "source": "Generated Windows MediaFoundation",
+      "bytes": 22797,
+      "sha256": "553988414d48c2413324d97c66b7e3959461986df40f061462ed59bf2d8a1294",
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "bitrateMode": "CBR",
+      "physicalFrameCount": 54,
+      "ffprobeAudioPackets": 54,
+      "mediaInfoFrameCount": 54,
+      "carrier": null,
+      "carrierBytes": 0,
+      "packetByteRangesCoverAudio": true,
+      "testedChunkLayouts": [1, 7, 4093, 65536, "deterministic random"],
+      "http": {
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "response": {
+          "frameCount": 54
+        }
+      }
+    },
+    {
+      "name": "mediafoundation-cbr-48000-stereo-no-xing-id3v24",
+      "source": "Generated Windows MediaFoundation",
+      "bytes": 22807,
+      "sha256": "feabff865262eb1dfefb7970d926e646cb12f677c031d8bd543db532046de16a",
+      "sampleRateHz": 48000,
+      "channels": 2,
+      "bitrateMode": "CBR",
+      "physicalFrameCount": 59,
+      "ffprobeAudioPackets": 59,
+      "mediaInfoFrameCount": 59,
+      "carrier": null,
+      "carrierBytes": 0,
+      "packetByteRangesCoverAudio": true,
+      "testedChunkLayouts": [1, 7, 4093, 65536, "deterministic random"],
+      "http": {
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "response": {
+          "frameCount": 59
+        }
+      }
+    },
+    {
+      "name": "vbr-32000-mono-seek-id3v24",
+      "source": "Generated LAME",
+      "bytes": 13203,
+      "sha256": "fee4f79b42f1e535cd73f510bc509c4c27a2f35ca22f4c6d874a75296f943512",
+      "sampleRateHz": 32000,
+      "channels": 1,
+      "bitrateMode": "VBR",
+      "physicalFrameCount": 41,
+      "ffprobeAudioPackets": 40,
+      "mediaInfoFrameCount": 40,
+      "carrier": "Xing",
+      "carrierBytes": 180,
+      "packetByteRangesCoverAudio": true,
+      "testedChunkLayouts": [1, 7, 4093, 65536, "deterministic random"],
+      "http": {
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "response": {
+          "frameCount": 41
+        }
+      }
+    },
+    {
+      "name": "vbr-32000-stereo-seek-id3v23",
+      "source": "Generated LAME",
+      "bytes": 25078,
+      "sha256": "c0e3fddd322bd54f4db8601292849f8b067de93f441b3ff9e7321911026211ec",
+      "sampleRateHz": 32000,
+      "channels": 2,
+      "bitrateMode": "VBR",
+      "physicalFrameCount": 41,
+      "ffprobeAudioPackets": 40,
+      "mediaInfoFrameCount": 40,
+      "carrier": "Xing",
+      "carrierBytes": 216,
+      "packetByteRangesCoverAudio": true,
+      "testedChunkLayouts": [1, 7, 4093, 65536, "deterministic random"],
+      "http": {
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "response": {
+          "frameCount": 41
+        }
+      }
+    },
+    {
+      "name": "vbr-44100-mono-no-xing-id3v24",
+      "source": "Generated LAME",
+      "bytes": 14958,
+      "sha256": "71759f1e0b400b07ac5b99267ec77a83f49541aa72288a7083f1a61ff8f5f9c1",
+      "sampleRateHz": 44100,
+      "channels": 1,
+      "bitrateMode": "VBR",
+      "physicalFrameCount": 54,
+      "ffprobeAudioPackets": 54,
+      "mediaInfoFrameCount": 54,
+      "carrier": null,
+      "carrierBytes": 0,
+      "packetByteRangesCoverAudio": true,
+      "testedChunkLayouts": [1, 7, 4093, 65536, "deterministic random"],
+      "http": {
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "response": {
+          "frameCount": 54
+        }
+      }
+    },
+    {
+      "name": "vbr-44100-stereo-no-xing-id3v23",
+      "source": "Generated LAME",
+      "bytes": 28979,
+      "sha256": "d1bed3ff5abdbdacadc600837f3f67cd90fe4c707c30974228938a4964b217cb",
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "bitrateMode": "VBR",
+      "physicalFrameCount": 54,
+      "ffprobeAudioPackets": 54,
+      "mediaInfoFrameCount": 54,
+      "carrier": null,
+      "carrierBytes": 0,
+      "packetByteRangesCoverAudio": true,
+      "testedChunkLayouts": [1, 7, 4093, 65536, "deterministic random"],
+      "http": {
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "response": {
+          "frameCount": 54
+        }
+      }
+    },
+    {
+      "name": "vbr-48000-mono-seek-id3v24",
+      "source": "Generated LAME",
+      "bytes": 15591,
+      "sha256": "4c7ccc60917dde5abb37b733ed491ab1cfa2112920d1c92bb701a638244d0285",
+      "sampleRateHz": 48000,
+      "channels": 1,
+      "bitrateMode": "VBR",
+      "physicalFrameCount": 60,
+      "ffprobeAudioPackets": 59,
+      "mediaInfoFrameCount": 59,
+      "carrier": "Xing",
+      "carrierBytes": 192,
+      "packetByteRangesCoverAudio": true,
+      "testedChunkLayouts": [1, 7, 4093, 65536, "deterministic random"],
+      "http": {
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "response": {
+          "frameCount": 60
+        }
+      }
+    },
+    {
+      "name": "vbr-48000-stereo-seek-id3v23",
+      "source": "Generated LAME",
+      "bytes": 28966,
+      "sha256": "8a2ad83490f0fc52f2c1faaa23a63f6e63aac0c67ddf5ed10b940c4e5952d555",
+      "sampleRateHz": 48000,
+      "channels": 2,
+      "bitrateMode": "VBR",
+      "physicalFrameCount": 60,
+      "ffprobeAudioPackets": 59,
+      "mediaInfoFrameCount": 59,
+      "carrier": "Xing",
+      "carrierBytes": 192,
+      "packetByteRangesCoverAudio": true,
+      "testedChunkLayouts": [1, 7, 4093, 65536, "deterministic random"],
+      "http": {
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "response": {
+          "frameCount": 60
+        }
+      }
+    },
+    {
+      "name": "mpg123-sweep",
+      "source": "Public project fixture",
+      "bytes": 10677,
+      "sha256": "f3059e12fac4e0f8893db533a8debb3d54a4fcd628c27258187b5dad0d1bdff7",
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "bitrateMode": "VBR",
+      "physicalFrameCount": 41,
+      "ffprobeAudioPackets": 40,
+      "mediaInfoFrameCount": 40,
+      "carrier": "Xing",
+      "carrierBytes": 417,
+      "packetByteRangesCoverAudio": true,
+      "sourceUrl": "https://github.com/madebr/mpg123/blob/db58b4ab4bca95032328b4dd01506aad54cb4ac8/src/tests/sweep.mp3",
+      "license": "LGPL-2.1",
+      "licenseUrl": "https://github.com/madebr/mpg123/blob/db58b4ab4bca95032328b4dd01506aad54cb4ac8/COPYING",
+      "http": {
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "response": {
+          "frameCount": 41
+        }
+      }
+    },
+    {
+      "name": "sdl-mixer-music",
+      "source": "Public project fixture",
+      "bytes": 551040,
+      "sha256": "67d98979d13c7da2b6d92b6b97156c1a22b5eda22548de8911d7f5f33bfe2700",
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "bitrateMode": "CBR",
+      "physicalFrameCount": 1315,
+      "ffprobeAudioPackets": 1314,
+      "mediaInfoFrameCount": 1315,
+      "carrier": "Info",
+      "carrierBytes": 208,
+      "packetByteRangesCoverAudio": true,
+      "sourceUrl": "https://github.com/libsdl-org/SDL_mixer/blob/df66ae893c91b0f6fa5d026a195bb278213d007d/examples/music.mp3",
+      "license": "CC-BY-4.0",
+      "licenseUrl": "https://github.com/libsdl-org/SDL_mixer/blob/df66ae893c91b0f6fa5d026a195bb278213d007d/examples/README.md",
+      "http": {
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "response": {
+          "frameCount": 1315
+        }
+      }
+    }
+  ]
+}

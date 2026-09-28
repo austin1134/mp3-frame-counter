@@ -106,7 +106,9 @@ This is a synchronous lightweight parser running in the Node process. Upload lim
 
 Tests exercise the header rules and known frame lengths, CBR/VBR/padding/CRC, false sync patterns, metadata, free-format discovery, arbitrary chunk splits, truncation, and the supplied real file. HTTP tests cover the response shape/headers, malformed multipart, extra parts, byte limits, and aborted requests. Formatting, linting, strict TypeScript checking, and tests are included in the repository tooling and CI.
 
-The clean-install verification passed **183 tests**, with **97.58% line coverage** and **92.85% branch coverage** across parsing, HTTP handling, and configuration. The compiled server was also tested with a real upload. See [verification evidence](docs/verification.md) for the environment, commands, coverage scope, and independent sample check.
+The clean-install verification passed **191 tests**, with **97.58% line coverage** and **92.85% branch coverage** across parsing, HTTP handling, and configuration. The compiled server was also tested with real uploads. See [verification evidence](docs/verification.md) for the environment, commands, coverage scope, and independent sample check.
+
+Supplemental checks covered **23 additional real MP3s** from two encoders and public project fixtures, with **105 generated-file chunk checks** and **27 compiled-server uploads** including controlled sample copies. Three small generated files remain in the regression suite. [The comparison report](docs/additional-validation.md) explains FFprobe and MediaInfo results, including why a tool's stored frame count is not always an independent scan.
 
 The fixture is the supplied `sample (2).mp3`, copied unchanged to `tests/fixtures/assessment-sample.mp3`: **1,458,172 bytes**, SHA-256 `97707a18a58ba75122b1668f5ed738f090121343432d9172a6409ddfa4fc5ab3`.
 
@@ -116,7 +118,7 @@ The sample contains **6,090 physical MPEG frames**; its first carries Xing metad
 ffprobe -v error -select_streams a:0 -count_packets -show_entries stream=nb_read_packets -of json tests/fixtures/assessment-sample.mp3
 ```
 
-[FFmpeg skips the Xing information frame](https://github.com/FFmpeg/FFmpeg/blob/master/libavformat/mp3dec.c) before reading audio packets, explaining the difference. This optional verification tool is not an application dependency.
+[FFmpeg skips the Xing information frame](https://github.com/FFmpeg/FFmpeg/blob/n9.0.2/libavformat/mp3dec.c) before reading audio packets, explaining the difference. MediaInfo 26.05 also reports 6,089 for this sample; a controlled copy with a deliberately false stored Xing count makes it report that false value, while the API still counts the physical frames. These optional verification tools are not application dependencies.
 
 Structural validation does not prove audio decodability or verify CRC checksums. MPEG-2/2.5, other layers, APE metadata, arbitrary leading/trailing junk, and corruption recovery are outside the implemented contract. Unsupported content is rejected explicitly.
 
