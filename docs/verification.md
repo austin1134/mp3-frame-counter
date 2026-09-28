@@ -22,7 +22,7 @@ Coverage includes `src/mp3/`, `src/http/`, and `src/config.ts`. Process startup 
 
 The tests include independently specified frame lengths, every supported bitrate/sample-rate pairing, CRC and padding, false headers within payload and metadata, free-format discovery, malformed and truncated input, byte-by-byte and seeded chunk partitions, and a generated 50 MB stream with bounded retained parser input. HTTP tests check exact responses, the supplied sample, complete multipart validation, inclusive limits, large streaming requests, disconnects, inactivity, and request deadlines.
 
-The GitHub Actions workflow configures clean installs and the same check command for Node 22/24 on Ubuntu/Windows. Remote CI runs have not been performed because delivery is a local repository.
+The [GitHub Actions workflow](https://github.com/austin1134/mp3-frame-counter/actions/workflows/ci.yml) runs clean installs and `npm run check` on all four combinations: Node 22/24 on Ubuntu/Windows, covering formatting, linting, type checking, tests with coverage thresholds, and the production build.
 
 ## Compiled server check
 
