@@ -9,18 +9,18 @@ npm ci
 npm run check
 ```
 
-All checks passed: Prettier, ESLint with type-aware rules and no warnings, strict TypeScript, 160 tests in six files, coverage thresholds, and the production build.
+All checks passed: Prettier, ESLint with type-aware rules and no warnings, strict TypeScript, 183 tests in six files, coverage thresholds, and the production build.
 
 | Coverage   |             Result |
 | ---------- | -----------------: |
-| Statements | 95.79% (387 / 404) |
-| Branches   | 92.70% (267 / 288) |
+| Statements | 95.82% (390 / 407) |
+| Branches   | 92.85% (273 / 294) |
 | Functions  |   98.03% (50 / 51) |
-| Lines      | 97.56% (361 / 370) |
+| Lines      | 97.58% (364 / 373) |
 
 Coverage includes `src/mp3/`, `src/http/`, and `src/config.ts`. Process startup is excluded from coverage thresholds; real socket tests exercise server timeout configuration and bounded shutdown. Uncovered paths primarily concern defensive invariants and uncommon transport failure branches.
 
-The tests include independently specified frame lengths, every supported bitrate/sample-rate pairing, CRC and padding, false headers within payload and metadata, free-format discovery, malformed and truncated input, byte-by-byte and seeded chunk partitions, and a generated 50 MB stream with bounded retained parser input. HTTP tests check exact responses, the supplied sample, complete multipart validation, inclusive limits, large streaming requests, disconnects, inactivity, and request deadlines.
+The tests include independently specified frame lengths, every supported bitrate/sample-rate pairing, CRC and padding, false headers within payload and metadata, free-format discovery and subsequent mode changes, malformed and truncated input, byte-by-byte and seeded chunk partitions, and a generated 50 MB stream with bounded retained parser input. HTTP tests check exact responses, the supplied sample, complete multipart validation, inclusive limits, large streaming requests, disconnects, inactivity, request deadlines, graceful draining, and forced shutdown.
 
 The [GitHub Actions workflow](https://github.com/austin1134/mp3-frame-counter/actions/workflows/ci.yml) runs clean installs and `npm run check` on all four combinations: Node 22/24 on Ubuntu/Windows, covering formatting, linting, type checking, tests with coverage thresholds, and the production build.
 
@@ -34,7 +34,7 @@ Content-Type: application/json; charset=utf-8
 Body: {"frameCount":6090}
 ```
 
-Uploading README bytes returned `400` with `INVALID_MP3`. `GET /file-upload` returned `405` with `Allow: POST`.
+A generated seven-frame free-format upload changed channel mode, CRC, and padding after discovery and returned `200` with `{"frameCount":7}`. Uploading README bytes returned `400` with `INVALID_MP3`. `GET /file-upload` returned `405` with `Allow: POST`.
 
 ## Independent sample verification
 

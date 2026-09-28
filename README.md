@@ -83,9 +83,9 @@ The HTTP layer feeds chunks into an independent parser with `push(chunk)` and `f
 
 The factor 144 comes from 1,152 samples per frame divided by eight bits per byte ([ITU MPEG audio guidance](https://www.itu.int/dms_pubrec/itu-r/rec/bs/R-REC-BS.1115-1-200504-W!!PDF-E.pdf)). The calculation can be cross-checked against [FFmpeg's MPEG header decoder](https://ffmpeg.org/doxygen/trunk/mpegaudiodecheader_8c_source.html).
 
-An apparent header inside audio payload cannot create an extra frame. There is no arbitrary byte scanning or corruption recovery. Supported metadata is leading ID3v2.2/2.3/2.4, appended ID3v2.4 with its required footer, and a final 128-byte ID3v1 tag. Metadata bodies are skipped without retaining them.
+For indexed-bitrate frames, an apparent header inside audio payload cannot create an extra frame. The parser does not attempt corruption recovery. Supported metadata is leading ID3v2.2/2.3/2.4, appended ID3v2.4 with its required footer, and a final 128-byte ID3v1 tag. Metadata bodies are skipped without retaining them.
 
-Free-format headers have no table bitrate. The parser finds the earliest next free-format header with matching sample rate/channel count and confirms the inferred spacing with a third header. This remains a synchronization heuristic. Bounded lookahead supports frame lengths through **1,441 bytes**, including padding, using a **2,886-byte window**. Short streams without confirming headers and larger free-format frames receive `415`; they are a disclosed limitation within MPEG-1 Layer III, not another MPEG format.
+Free-format headers have no table bitrate. Initial discovery finds the earliest next header with matching sample rate and channel count, then confirms spacing with a third header. This synchronization heuristic can mistake repeated compatible payload patterns for boundaries. Matching channels is a discovery constraint; after sizing is confirmed, channel/mode changes are accepted while the free-format bitrate index and sample rate remain consistent. Bounded lookahead supports frame lengths through **1,441 bytes**, including padding, using a **2,886-byte window**. Short streams without confirming headers and larger free-format frames receive `415`; they are a disclosed limitation within MPEG-1 Layer III, not another MPEG format.
 
 ## Resource limits and choices
 
@@ -106,7 +106,7 @@ This is a synchronous lightweight parser running in the Node process. Upload lim
 
 Tests exercise the header rules and known frame lengths, CBR/VBR/padding/CRC, false sync patterns, metadata, free-format discovery, arbitrary chunk splits, truncation, and the supplied real file. HTTP tests cover the response shape/headers, malformed multipart, extra parts, byte limits, and aborted requests. Formatting, linting, strict TypeScript checking, and tests are included in the repository tooling and CI.
 
-The clean-install verification passed **160 tests**, with **97.56% line coverage** and **92.70% branch coverage** across parsing, HTTP handling, and configuration. The compiled server was also tested with a real upload. See [verification evidence](docs/verification.md) for the environment, commands, coverage scope, and independent sample check.
+The clean-install verification passed **183 tests**, with **97.58% line coverage** and **92.85% branch coverage** across parsing, HTTP handling, and configuration. The compiled server was also tested with a real upload. See [verification evidence](docs/verification.md) for the environment, commands, coverage scope, and independent sample check.
 
 The fixture is the supplied `sample (2).mp3`, copied unchanged to `tests/fixtures/assessment-sample.mp3`: **1,458,172 bytes**, SHA-256 `97707a18a58ba75122b1668f5ed738f090121343432d9172a6409ddfa4fc5ab3`.
 
