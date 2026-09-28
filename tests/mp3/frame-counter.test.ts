@@ -8,6 +8,7 @@ import {
   createFrame,
   defaultFrame,
 } from '../helpers/mp3-fixtures.js';
+import { realMp3Fixtures } from '../helpers/real-mp3-fixtures.js';
 
 function count(bytes: Uint8Array, chunkSize = bytes.length || 1): number {
   const parser = new Mp3FrameCounter();
@@ -159,6 +160,43 @@ describe('physical frame counting', () => {
     expect(sample.readUInt32BE(88)).toBe(6089);
     expect(count(sample, 16_384)).toBe(6090);
   });
+
+  it('ignores a deliberately false Xing declaration in the supplied sample', () => {
+    const sample = readFileSync(
+      new URL('../fixtures/assessment-sample.mp3', import.meta.url),
+    );
+    // The real Xing carrier starts at 44; its marker is at 80 and count at 88.
+    expect(sample.toString('ascii', 80, 84)).toBe('Xing');
+    sample.writeUInt32BE(1, 88);
+    expect(count(sample, 7)).toBe(6090);
+  });
+
+  it('counts 6089 frames after removing only the supplied sample Xing carrier', () => {
+    const sample = readFileSync(
+      new URL('../fixtures/assessment-sample.mp3', import.meta.url),
+    );
+    // FFprobe's first audio packet is at 252: preserve the 44-byte ID3v2 tag,
+    // remove the complete 208-byte carrier, and retain every audio packet.
+    const withoutCarrier = concatBytes(
+      sample.subarray(0, 44),
+      sample.subarray(252),
+    );
+    expect(count(withoutCarrier, 7)).toBe(6089);
+  });
+
+  it.each(realMp3Fixtures)(
+    'counts $file against independent packet evidence across chunk boundaries',
+    ({ file, bytes, frameCount, sha256 }) => {
+      const fixture = readFileSync(
+        new URL(`../fixtures/${file}`, import.meta.url),
+      );
+      expect(fixture.length).toBe(bytes);
+      expect(createHash('sha256').update(fixture).digest('hex')).toBe(sha256);
+      for (const chunkSize of [1, 7, 4093, fixture.length]) {
+        expect(count(fixture, chunkSize)).toBe(frameCount);
+      }
+    },
+  );
 });
 
 describe('metadata envelopes', () => {

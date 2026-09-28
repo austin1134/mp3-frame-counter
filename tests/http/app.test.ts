@@ -9,6 +9,7 @@ import {
 } from '../../src/config.js';
 import { Mp3FrameCounter } from '../../src/mp3/frame-counter.js';
 import { defaultFrame } from '../helpers/mp3-fixtures.js';
+import { realMp3Fixtures } from '../helpers/real-mp3-fixtures.js';
 
 function expectError(
   response: TestResponse,
@@ -37,6 +38,24 @@ describe('POST /file-upload', () => {
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ frameCount: 6090 });
   });
+
+  it.each(realMp3Fixtures)(
+    'returns the independently verified frame count for $file',
+    async ({ file, frameCount }) => {
+      const fixturePath = fileURLToPath(
+        new URL(`../fixtures/${file}`, import.meta.url),
+      );
+      const response = await request(createApp())
+        .post('/file-upload')
+        .attach('file', fixturePath);
+
+      expect(response.status).toBe(200);
+      expect(response.get('Content-Type')).toBe(
+        'application/json; charset=utf-8',
+      );
+      expect(response.body).toEqual({ frameCount });
+    },
+  );
 
   it('returns only the physical frame count with a JSON content type', async () => {
     const response = await request(createApp())
