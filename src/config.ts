@@ -49,7 +49,9 @@ function positiveInteger(
 export function readConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const host = env['HOST'] ?? '127.0.0.1';
   if (host.length === 0 || /\s|\//.test(host)) {
-    throw new Error('HOST must be a hostname or IP address without whitespace.');
+    throw new Error(
+      'HOST must be a hostname or IP address without whitespace.',
+    );
   }
   const maxFileBytes = positiveInteger(
     'MAX_UPLOAD_BYTES',
